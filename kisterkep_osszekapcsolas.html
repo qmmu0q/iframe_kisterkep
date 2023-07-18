@@ -152,7 +152,7 @@
 						clickedPoints = []; 
 					});
 					id = e.layer.feature.properties.id;
-					window.parent.postMessage({type: 'featureHove', id: id}, '*')
+					window.parent.postMessage({type: 'featureHover', id: id}, '*')
 					console.log(id);
 				});
 				kcsvonalakLayer.eachLayer(function(kcsvonalakFeature) { 
