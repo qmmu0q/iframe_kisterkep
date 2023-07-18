@@ -153,6 +153,7 @@
 					});
 					id = e.layer.feature.properties.id;
 					window.parent.postMessage({type: 'featureHove', id: id}, '*')
+					console.log(id);
 				});
 				kcsvonalakLayer.eachLayer(function(kcsvonalakFeature) { 
 					map.on('click', function() {
