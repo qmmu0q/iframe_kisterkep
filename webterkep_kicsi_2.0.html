@@ -125,7 +125,7 @@
 			var clickedPoints = []; //üres tömb létrehozása a fetch-en kívül az éppen kattintott pontok tárolására
 
 			//pontréteg betöltése és hozzáadása a térképhez
-			fetch('geojson/pontok.geojson').then(r => r.json()).then(function (kcspontokJSON) {
+			fetch('geojson/pontok_iframe.geojson').then(r => r.json()).then(function (kcspontokJSON) {
 				var kcspontokLayer = L.geoJson(kcspontokJSON, {pointToLayer: function (feature, latlng) {
 					var coordinates = feature.geometry.coordinates; //koordináták változóba mentése
 
@@ -224,7 +224,7 @@
 			var selected_kcsvonalak; //üres változó létrehozása a fetch-en kívül a vonalak kijelölésének tárolásához (hogy a pontréteg is elérje)
 
 			//vonalréteg betöltése és hozzáadása a térképhez
-			fetch('geojson/vonalak.geojson').then(r => r.json()).then(function(kcsvonalakJSON) {
+			fetch('geojson/vonalak_iframe.geojson').then(r => r.json()).then(function(kcsvonalakJSON) {
 				kcsvonalakLayer = L.geoJson(kcsvonalakJSON, {
 					className: 'kcsvonalak', //osztály hozzárendelése a vonalkhoz
 					color: '#002557', //szín
