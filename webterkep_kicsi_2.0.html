@@ -105,6 +105,7 @@
 
 			var id; //üres változó létrehozása az id attribútumok tárolásához
 			var fid;
+			var text;
 
 
 
@@ -160,13 +161,16 @@
 								//ID
 								id = feature.properties.id;
 								fid = feature.properties.fid;
+								text = feature.properties.text;
 								window.parent.postMessage({ //változó továbbküldése 
 									type: 'featureClick',
 									id: id,
-									fid: fid
+									fid: fid,
+									text: text
 								}, '*')
 								console.log('PONT: ' + id);
 								console.log('FID: ' + fid);
+								console.log('Szöveg: ' + text);
 								
 								clickedPoints.forEach(function (point) {
 									point.setIcon(defaultIcon);
@@ -258,13 +262,16 @@
 					//ID
 					id = e.layer.feature.properties.id; //attribútum mentése változóba
 					fid = e.layer.feature.properties.fid;
+					text = e.layer.feature.properties.text;
 					window.parent.postMessage({ //változó továbbküldése 
 						type: 'featureClick',
 						id: id,
 						fid: fid,
+						text: text
 					}, '*')
 					console.log('VONAL :' + id);
 					console.log('FID: ' + fid);
+					console.log('Szöveg: ' + text);
 				});
 
 				//a vonalréteg minden egyes eleméhez..
