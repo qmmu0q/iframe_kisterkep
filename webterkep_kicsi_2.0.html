@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<title>Kontúr Csoport - kistérkép</title> <!--cím a böngésző fülre-->
+		<link rel = 'icon' type = 'image/x-icon' href = 'media/kcs_favicon.png'>  <!--böngészőfülön megjelenő favicon-->
+		<meta name = 'description' content = 'A webtérkép a Kontúr Csoport Kft. eddigi munkáit mutatja be.'/>  <!--ez a tag tartalmazza az oldal leírását-->
+		<meta charset = 'utf-8'> <!--karakterkódolás-->
+		<meta name = 'viewport' content = 'initial-scale=1,user-scalable=no'/> <!--ez a különböző képernyőméretekhez kell-->
+
+
+
+		<!--LEAFLET 1.9.4: https://leafletjs.com/-->
+		<!--leaflethez tartozó css és js fájlok beolvasása-->
+		<link rel = 'stylesheet' href = 'leaflet/leaflet.css' />
+		<script src = 'leaflet/leaflet.js'></script>
+
+
+
+		<!--STÍLUSBEÁLLÍTÁSOK-->
+		<style>
+			/*TELJESKÉPERNYŐS BEÁLLÍTÁS*/
+			html, body { /*html dokumentum*/
+                height: 100%; /*magasság*/
+				width: 100%; /*szélesség*/
+                margin: 0; /*margó*/
+            }
+            #map_div { /*térképvászon*/
+                height: 100%; /*magasság*/
+				width: 100%; /*szélesség*/
+            }
+
+
+			/*kcsvonalréteg hover-re vastagodjon és változzon meg a színe*/
+			svg path.kcsvonalak:hover {
+				stroke-width: 7; /*vonalvastagság*/
+				stroke: #00A7E1; /*vonalszín*/
+			}
+
+
+			/*erre a parancsra azért van szükség, hogy a default körvonal ne jelenjen meg a geojson-re kattintáskor*/
+			path.leaflet-interactive:focus {
+				outline: none;
+			}
+
+
+			/*alaptérképpel NEM lefedett terület színe*/
+			.leaflet-container {
+    			background-color: #D2D2D2;
+			}
+		</style>
+	</head>
+
+
+
+	<body>
+		<!--TÉRKÉPVÁSZON-->
+		<div id = 'map_div'> <!--üres div elem létrehozása azonosítóval - ez a teljesképernyős elem tartalmazza a térképvászont-->
+		</div>
+
+
+		<!--JAVASCRIPT-->
+		<script>
+			//TÉRKÉPVÁSZON --- létrehozása és hozzáadása a map_div-hez 
+			var map = L.map('map_div', {
+				zoomSnap: 0, //kikapcsolja a fokozatos nagyítási animációt
+				zoomControl: false, //kikapcsolja a zoom gombokat
+				dragging: false, //kikapcsolja a térképvászon elmozdíthatóságát
+				touchZoom: false, //kikapcsolja az érintőképernyős nagyítást
+				scrollWheelZoom: false, //kikapcsolja a görgetős nagyítást
+				doubleClickZoom: false, //kikapcsolja a duplakattintós nagyítást
+				boxZoom: false, //kikapcsolja a SHIFT+terölet rajzolása nagyítási lehetőséget
+				keyboard: false //kikapcsolja a billentyűzetet
+			});
+
+
+
+
+
+			//SZÜRKEÁRNYALATOS ALAPTÉRKÉP BETÖLTÉSE + ZOOM TO
+			//a nagy alaptérkép elhelyezésének WGS84 sarokpont koordinátái
+			var imageBounds_alapterkep = [
+				[45.034, 15.046], //SouthWest
+				[49.246, 23.962]  //NorthEast
+			];
+
+			//a nagy alaptérkép képének betöltése
+			var imageOverlay_alapterkep = L.imageOverlay(
+				'media/basemap.jpg', //kép elérési útvonala
+				imageBounds_alapterkep //kép elhelyezésének koordinátái
+			).addTo(map); //kép hozzáadása a térképhez
+
+			//szűkebb WGS84 sarokpont koordináták az országhatárra fókuszáláshoz 
+			var imageBounds_zoom = [
+				[45.6648759935, 15.9442902088], //SouthWest
+				[48.6559554141, 23.0638046802]  //NorthEast
+			];
+			map.fitBounds(imageBounds_zoom); //térképvászon alapértelmezett nézetének megadása a zoom koordináták alapján 
+
+
+//
+//VEKTOROS RÉTEGEK BETÖLTÉSE
+//
+
+
+			var id; //üres változó létrehozása az id attribútumok tárolásához
+
+
+
+
+
+			//KCS PONTRÉTEG
+			//alapértelmezett ikon definiálása
+			var defaultIcon = L.icon({
+				iconUrl: 'media/icon_default.png', //ikon elérési útvonala
+				iconSize: [16] //ikon mérete
+			});
+
+			//kijelölt ikon definiálása
+			var highlightedIcon = L.icon({
+				iconUrl: 'media/icon_highlighted.png', //ikon elérési útvonala
+				iconSize: [22] //ikon mérete
+			});
+
+			var clickedPoints = []; //üres tömb létrehozása a fetch-en kívül az éppen kattintott pontok tárolására
+
+			//pontréteg betöltése és hozzáadása a térképhez
+			fetch('geojson/pontok.geojson').then(r => r.json()).then(function (kcspontokJSON) {
+				var kcspontokLayer = L.geoJson(kcspontokJSON, {pointToLayer: function (feature, latlng) {
+					var coordinates = feature.geometry.coordinates; //koordináták változóba mentése
+
+					//ellenőrzés, hogy az adott pont multipoint típusú-e
+					if (feature.geometry.type === 'MultiPoint') { //HA multipoint, AKKOR..
+						var uniqueCoordinates = []; //üres tömb létrehozása az egyedi koordináták tárolásához
+						var reversedCoordinates = []; //üres tömb létrehozása az inverz koordináták tárolásához
+
+						//ismétlődő koordináták kiszűrése
+						var filteredCoordinates = coordinates.filter(function (coord) {
+							var coordString = coord.join(','); //koordináták stringként összefűzése
+							if (!uniqueCoordinates.includes(coordString)) { //HA az adott koordináta már hozzá lett fűzve, AKKOR..
+							uniqueCoordinates.push(coordString); //egyedi koordináta hozzáadása a tömbhöz
+							reversedCoordinates.push(coord.slice().reverse()); //inverz koordináta hozzáadása a tömbhöz
+							return true; //egyedi koordináta megtartása
+							};
+							return false; //duplikált koordináta eldobása
+						});
+
+						//featuregroup létrehozása a multipoint pontoknak
+						var multipointGroup = L.featureGroup();
+
+						//iteráljon végig a koordinátákon és hozzon létre minden ponton egy markert
+						filteredCoordinates.forEach(function (_, index) {
+							var kcspontokFeature = L.marker(reversedCoordinates[index], { icon: defaultIcon });
+							multipointGroup.addLayer(kcspontokFeature);
+
+							//pont rétegre kattintás esemény
+							kcspontokFeature.on('click', function (e) {			
+								clickedPoints.forEach(function (point) {
+									point.setIcon(defaultIcon);
+								});
+								clickedPoints = []; //kattintot pontok tömbjének kiürítése
+
+								//a kattintott multipart pont minden részénél változzon meg az ikon a kijelöltre
+								filteredCoordinates.forEach(function (_, i) {
+									var part = multipointGroup.getLayers()[i];
+									part.setIcon(highlightedIcon);
+									clickedPoints.push(part); //kattintott pont hozzáadása a tömbhöz
+
+									//attribútumok kiolvasása és továbbküldése a master page-re
+									//ID
+									id = feature.properties.id;
+									window.parent.postMessage({ //változó továbbküldése 
+										type: 'featureClick',
+										id: id
+									}, '*')
+									console.log('PONT: ' + id);
+								});
+
+								//pontra kattintáskor vonalrétegen kijelölés megszüntetése
+								if (selected_kcsvonalak) {
+								selected_kcsvonalak.setStyle({weight: 4, color: '#002557'});
+								}								
+							});
+
+							//mouseOVER eseménynél minden pont ikonja változzon kijelöltre
+							kcspontokFeature.on('mouseover', function (e) {
+								if (clickedPoints.indexOf(this) === -1) {
+									filteredCoordinates.forEach(function (_, i) {
+										var part = multipointGroup.getLayers()[i];
+										part.setIcon(highlightedIcon);
+									});
+								}
+							});
+
+							//mouseOUT eseménynél minden pont ikonja változzon alapértelmezettre
+							kcspontokFeature.on('mouseout', function (e) {
+								if (clickedPoints.indexOf(this) === -1) {
+									filteredCoordinates.forEach(function (_, i) {
+										var part = multipointGroup.getLayers()[i];
+										part.setIcon(defaultIcon);
+									});
+								}
+							});
+
+							//minden pont ikonjának visszaállítása alapértelmezettre a térképre kattintáskor
+							map.on('click', function (e) {
+								clickedPoints.forEach(function (point) {
+									point.setIcon(defaultIcon);
+								});
+								clickedPoints = []; //kattintott pontok tömbjének ürítése
+							});
+						});
+						return multipointGroup;
+					};
+				}});
+				kcspontokLayer.addTo(map); //pontréteg hozzáadása a térképhez
+			});
+
+
+
+
+
+			//KCS VONALRÉTEG
+			var selected_kcsvonalak; //üres változó létrehozása a fetch-en kívül a vonalak kijelölésének tárolásához (hogy a pontréteg is elérje)
+
+			//vonalréteg betöltése és hozzáadása a térképhez
+			fetch('geojson/vonalak.geojson').then(r => r.json()).then(function(kcsvonalakJSON) {
+				kcsvonalakLayer = L.geoJson(kcsvonalakJSON, {
+					className: 'kcsvonalak', //osztály hozzárendelése a vonalkhoz
+					color: '#002557', //szín
+					weight: 4 //vonalvastagság
+				}).addTo(map); //hozzáadása a térképhez
+
+				//vonal rétegre kattintás esetén
+				kcsvonalakLayer.on('click', function(e) {
+					L.DomEvent.stopPropagation(e); //ez a parancs akadályozza meg, hogy a kattintás esemény tovább menjen a vonalon át a térképvászonra is
+					//változtassa meg a kattintott vonal stílusát (egyszerre csak egy vonal feature lehet kijelölve)
+					if (selected_kcsvonalak) { //ez az if ciklus végzi el azt, hogy ne lehessen egyszerre több feature-t kijelölni --- HA a vonal rétegre kattintáskor már van kijelölve vonal, AKKOR..
+						e.target.resetStyle(selected_kcsvonalak); //a már korábban kijelölt vonal stílusának visszaállítása
+					};
+					selected_kcsvonalak = e.layer; //új vonal hozzáadása a kijelöléshez
+					selected_kcsvonalak.setStyle({ //lekattintott vonal stílusának átállítása kijelöltre
+						color: '#00A7E1', //vonalszín
+						weight: 7 //vonalvastagság
+					});
+
+					//ha a vonalra kattintáskor már van kijelölt pont, akkor annak változtassa vissza az ikonját, hogy csak a vonal legyen kijelölt	
+					clickedPoints.forEach(function (point) {
+						point.setIcon(defaultIcon); //alapértelmezett ikon visszaállítása
+						clickedPoints = []; //korábban kattintott pont elfelejtése, hogy minden tisztán működjön 
+					});
+
+					//attribútumok kiolvasása és továbbküldése a master page-re
+					//ID
+					id = e.layer.feature.properties.id; //attribútum mentése változóba
+					window.parent.postMessage({ //változó továbbküldése 
+						type: 'featureClick',
+						id: id
+					}, '*')
+					console.log('VONAL :' + id)
+				});
+
+				//a vonalréteg minden egyes eleméhez..
+				kcsvonalakLayer.eachLayer(function(kcsvonalakFeature) { 
+					//térképre kattintáskor vonalkijelölés megszüntetése
+					map.on('click', function() {
+						kcsvonalakFeature.setStyle({
+							weight: 4, //vonalvastagság
+							color: '#002557' //vonalszín
+						});
+					});
+				});
+			});
+		</script>
+	</body>
+</html>
