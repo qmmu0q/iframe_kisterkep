@@ -104,6 +104,7 @@
 
 
 			var id; //üres változó létrehozása az id attribútumok tárolásához
+			var fid;
 
 
 
@@ -154,7 +155,19 @@
 							multipointGroup.addLayer(kcspontokFeature);
 
 							//pont rétegre kattintás esemény
-							kcspontokFeature.on('click', function (e) {			
+							kcspontokFeature.on('click', function (e) {		
+								//attribútumok kiolvasása és továbbküldése a master page-re
+								//ID
+								id = feature.properties.id;
+								fid = feature.properties.fid;
+								window.parent.postMessage({ //változó továbbküldése 
+									type: 'featureClick',
+									id: id,
+									fid: fid
+								}, '*')
+								console.log('PONT: ' + id);
+								console.log('FID: ' + fid);
+								
 								clickedPoints.forEach(function (point) {
 									point.setIcon(defaultIcon);
 								});
@@ -165,15 +178,6 @@
 									var part = multipointGroup.getLayers()[i];
 									part.setIcon(highlightedIcon);
 									clickedPoints.push(part); //kattintott pont hozzáadása a tömbhöz
-
-									//attribútumok kiolvasása és továbbküldése a master page-re
-									//ID
-									id = feature.properties.id;
-									window.parent.postMessage({ //változó továbbküldése 
-										type: 'featureClick',
-										id: id
-									}, '*')
-									console.log('PONT: ' + id);
 								});
 
 								//pontra kattintáskor vonalrétegen kijelölés megszüntetése
@@ -253,11 +257,14 @@
 					//attribútumok kiolvasása és továbbküldése a master page-re
 					//ID
 					id = e.layer.feature.properties.id; //attribútum mentése változóba
+					fid = e.layer.feature.properties.fid;
 					window.parent.postMessage({ //változó továbbküldése 
 						type: 'featureClick',
-						id: id
+						id: id,
+						fid: fid,
 					}, '*')
-					console.log('VONAL :' + id)
+					console.log('VONAL :' + id);
+					console.log('FID: ' + fid);
 				});
 
 				//a vonalréteg minden egyes eleméhez..
