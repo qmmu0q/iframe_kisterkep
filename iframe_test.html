@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <title>Kontúr Csoport - iframe</title>
+        <link rel = 'icon' type = 'image/x-icon' href = 'media/kcs_favicon.png'>
+        <meta name = 'description' content = 'A webtérkép a Kontúr Csoport Kft. kiemelt  munkáit mutatja be egy iframe-be ágyazva.'/>
+        <meta charset = 'utf-8'>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <style>
+            html, body {
+                height: 100%;
+                width: 100%; 
+                margin: 0; 
+            }
+
+            /*IBM PLEX SANS BETŰTÍPUS BETÖLTÉSE*/
+            @font-face {
+                font-family: 'IBM Plex Sans';
+                src: url('media/IBM_Plex_Sans/IBMPlexSans-Regular.ttf');
+            }
+
+            /*INFOPANEL*/
+            #infoPanel {
+                position: absolute;
+                    top: 0px; 
+                    left: 50%;
+                width: 50%; 
+                height: 50%;
+                overflow-y: auto;
+                background: #002557;
+                color: white; 
+                font-size: 15px;
+                font-family: 'IBM Plex Sans', 'Tahoma';
+                z-index: 1000;
+            }
+
+            #iframe {
+                position: absolute;
+                    top: 0px; 
+                    left: 0px;
+                width: 50%; 
+                height: 50%; 
+                z-index: 1000;
+            }
+        </style>
+    </head>
+
+    <body>
+        <!--IFRAME-->
+        <iframe id = "iframe" src="https://qmmu0q.github.io/iframe_kisterkep/webterkep_kicsi_2.0.html">
+        </iframe>
+
+        <!--INFOPANEL-->
+        <div id="infoPanel">
+        </div>
+
+        <script>
+            window.addEventListener('message', function (event) {
+                var infoPanelDiv = document.getElementById('infoPanel');
+                infoPanelDiv.innerHTML = '';                
+                var content =
+                    '<div style="padding-right: 10px; padding-left: 10px">' +
+                    '<p>ID: ' + event.data.id + '</p>' +
+                    '<p>Feature ID: ' + event.data.fid + '</p>' +
+                    '<p>Szöveg: ' + event.data.text + '</p></div>';
+
+                infoPanelDiv.innerHTML = content;
+            });
+        </script>
+    </body>
+</html>
